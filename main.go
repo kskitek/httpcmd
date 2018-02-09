@@ -29,9 +29,10 @@ type Status struct {
 }
 
 func main() {
+	port := flag.String("port", "8080", "http port")
 	readScriptPath()
 
-	setupServer(":8080")
+	setupServer(":" + *port)
 }
 
 func readScriptPath() {
@@ -79,10 +80,14 @@ func runStatus(w http.ResponseWriter, r *http.Request) {
 	idStr := mux.Vars(r)["id"]
 	id, _ := strconv.ParseInt(idStr, 10, 64)
 	stat := statusMap[id]
-	data, _ := json.Marshal(stat)
+	if stat != nil {
+		data, _ := json.Marshal(stat)
 
-	w.WriteHeader(http.StatusOK)
-	w.Write(data)
+		w.WriteHeader(http.StatusOK)
+		w.Write(data)
+	} else {
+		w.WriteHeader(http.StatusNotFound)
+	}
 }
 
 func runScript(id int64) (*Status, error) {
