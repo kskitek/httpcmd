@@ -2,29 +2,45 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"os/exec"
 	"strconv"
+	"sync/atomic"
+	"time"
 
 	"github.com/gorilla/mux"
 )
 
 var scriptPath string
 var statusMap map[int64]*Status = make(map[int64]*Status)
+var currId int64
 
 type Status struct {
-	// started int64
-	// ended int64
-	isRunning bool
-	err       error
+	Started     time.Time
+	Ended       time.Time
+	IsRunning   bool
+	ErrorString string
+	Err         error
 }
 
 func main() {
-	scriptPath = ""
+	readScriptPath()
 
 	setupServer(":8080")
+}
+
+func readScriptPath() {
+	flag.StringVar(&scriptPath, "scriptPath", "UNDEFINED", "path to the script")
+	flag.Parse()
+	if scriptPath == "UNDEFINED" {
+		flag.PrintDefaults()
+		os.Exit(1)
+	}
 }
 
 func setupServer(port string) {
@@ -38,7 +54,7 @@ func setupServer(port string) {
 }
 
 func startScript(w http.ResponseWriter, r *http.Request) {
-	var id int64 = 1
+	var id = atomic.AddInt64(&currId, 1)
 
 	go runScript(id)
 
@@ -47,7 +63,7 @@ func startScript(w http.ResponseWriter, r *http.Request) {
 }
 
 func startScriptAndWait(w http.ResponseWriter, r *http.Request) {
-	var id int64 = 99
+	var id = atomic.AddInt64(&currId, 1)
 
 	stat, err := runScript(id)
 	if err != nil {
@@ -70,22 +86,48 @@ func runStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 func runScript(id int64) (*Status, error) {
-	stat := &Status{isRunning: true,
-		err: nil,
+	stat := &Status{
+		Started:   time.Now(),
+		IsRunning: true,
+		Err:       nil,
 	}
 	statusMap[id] = stat
 
-	log.Printf("START [%d] %s\n", id, "sleep 5")
-	cmd := exec.Command("sleep", "5")
-	err := cmd.Run()
+	log.Printf("START [%d] %s\n", id, scriptPath)
+	err := runFile(id)
 	if err != nil {
-		log.Printf("END [%d] %s %s\n", id, "sleep 5", err.Error())
+		log.Printf("END   [%d] %s %s\n", id, scriptPath, err.Error())
 	} else {
-		log.Printf("END [%d] %s\n", id, "sleep 5")
+		log.Printf("END   [%d] %s\n", id, scriptPath)
 	}
-
-	stat.err = err
-	stat.isRunning = false
+	updateStat(stat, err)
 
 	return stat, err
+}
+
+func updateStat(stat *Status, err error) {
+	stat.Err = err
+	if err != nil {
+		stat.ErrorString = err.Error()
+	}
+	stat.IsRunning = false
+	stat.Ended = time.Now()
+}
+
+func runFile(id int64) error {
+	logFile := strconv.FormatInt(id, 10) + ".log"
+	f, _ := os.Create(logFile)
+	defer f.Close()
+
+	cmd := exec.Command(scriptPath)
+
+	reader, _ := cmd.StdoutPipe()
+	err := cmd.Start()
+	if err != nil {
+		return err
+	}
+	bytes, _ := ioutil.ReadAll(reader)
+	f.Write(bytes)
+
+	return cmd.Wait()
 }

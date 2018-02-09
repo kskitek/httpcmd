@@ -6,5 +6,6 @@
 vendor/
 Gopkg.lock
 
+*.log
 httpcmd
 out/
