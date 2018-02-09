@@ -1,7 +1,10 @@
+# httpcmd
+
 ## Usage:
 
 ```bash
-> go run main.go usage
+> go get gitlab.com/kskitek/httpcmd
+> httpcmd
   -port string
     http port (default "8080")
   -scriptPath string
@@ -10,11 +13,15 @@
 
 This exposes three endpoints:
 
-*  /start - runns script asynchronously and returns id of the job
-*  /startAndWait - runns the script and waits for it to end; returns job description
-*  /status/{id} - returns job desciption
+* `/start` - runns script asynchronously and returns id of the job
+*  `/startAndWait` - runns the script and waits for it to end; returns job description
+*  `/status/{id}` - returns job desciption
 
-### Example return job description:
+## Logging
+
+`httpcmd` saves standard output of the scripts into log files under {id}.log.
+
+## Example return job description:
 
 ```json
 {
@@ -35,7 +42,3 @@ This exposes three endpoints:
     }
 }
 ```
-
-### Logging
-
-`httpcmd` saves standard output of the scripts into log files under {id}.log.
