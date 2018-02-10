@@ -45,6 +45,7 @@ func readScriptPath() {
 }
 
 func setupServer(port string) {
+	log.Printf("STARTED server at %s with script %s", port, scriptPath)
 	r := mux.NewRouter()
 
 	r.HandleFunc("/start", startScript)

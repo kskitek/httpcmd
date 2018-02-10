@@ -1,0 +1,36 @@
+variables:
+  REPO_NAME: gofri/fridge
+  DOCKER_DRIVER: overlay2
+
+stages:
+ - test
+ - deploy
+
+test:
+  image: golang:1.9.4
+  stage: test
+  before_script:
+    - mkdir -p $GOPATH/src/$REPO_NAME
+    - ln -svf $CI_PROJECT_DIR/* $GOPATH/src/$REPO_NAME
+    - cd $GOPATH/src/$REPO_NAME
+    - go get
+  script:
+   - make verify
+   - make compile
+   - make compile-linux
+  after_script:
+   - cp -v $GOPATH/src/$REPO_NAME/httpcmd* $CI_PROJECT_DIR
+  artifacts:
+    paths:
+     - httpcmd
+     - httpcmd-linux
+
+deploy-app:
+  image: docker:18.02.0
+  stage: deploy
+  services:
+    - docker:dind
+  script:
+   - docker build -t registry.gitlab.com/$REPO_NAME .
+   - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.gitlab.com
+   - docker push registry.gitlab.com/$REPO_NAME
