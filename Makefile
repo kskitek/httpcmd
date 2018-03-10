@@ -3,7 +3,7 @@ all: deps test compile dbuild
 deps:
 	dep ensure
 
-test: deps
+test:
 	go test ./...
 
 verify:
