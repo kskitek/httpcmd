@@ -19,7 +19,8 @@ test:
    - make compile
    - make compile-linux
   after_script:
-   - cp -v $GOPATH/src/$REPO_NAME/httpcmd* $CI_PROJECT_DIR
+   - cp -v $GOPATH/src/$REPO_NAME/httpcmd $CI_PROJECT_DIR
+   - cp -v $GOPATH/src/$REPO_NAME/httpcmd-linux $CI_PROJECT_DIR
   artifacts:
     paths:
      - httpcmd
